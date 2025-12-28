@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "644887327998",
+    "project_id": "mockinterview-hirecraft",
+    "storage_bucket": "mockinterview-hirecraft.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:644887327998:android:18a42704712ea6688d21af",
+        "android_client_info": {
+          "package_name": "com.example.mockinterviewapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAGgXKdgCo9WPtuH2_rmVBMTYq5pFQfV2Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
