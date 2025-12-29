@@ -24,6 +24,7 @@ class InterviewController extends GetxController {
   final RxList<Map<String, dynamic>> results = <Map<String, dynamic>>[].obs;
   final RxBool isLoading = true.obs;
   final RxInt totalScore = 0.obs;
+  final RxString selectedProvider = 'gemini'.obs; // Default to gemini
   final answerController = TextEditingController();
 
   final List<String> difficulties = ['Fresher', 'Intermediate', 'Experienced'];
@@ -61,6 +62,8 @@ class InterviewController extends GetxController {
       print('✅ Using ONLY AI Engine');
       final engine = OnlineAIInterviewEngine();
       
+      // Update provider in config service temporarily for this session if needed
+      // Or we can just pass it to the engine
       final fetchedQuestions = await engine.getQuestions(domain, selectedDifficulty.value);
       
       if (fetchedQuestions.isEmpty) {

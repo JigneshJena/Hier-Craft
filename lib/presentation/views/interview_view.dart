@@ -100,12 +100,59 @@ class InterviewView extends StatelessWidget {
               style: Get.theme.textTheme.bodyMedium?.copyWith(color: Colors.grey),
               textAlign: TextAlign.center,
             ),
-            SizedBox(height: 40.h),
+            SizedBox(height: 20.h),
+            
+            // AI Model Selection
+            Row(
+              children: [
+                Expanded(child: _buildModelOption(controller, 'gemini', 'Gemini 2.5 Flash', Icons.bolt, Colors.blue)),
+                SizedBox(width: 15.w),
+                Expanded(child: _buildModelOption(controller, 'groq', 'Groq (Llama 3.3)', Icons.speed, Colors.purple)),
+              ],
+            ),
+            
+            SizedBox(height: 30.h),
             ...controller.difficulties.map((diff) => _buildLevelCard(controller, diff)),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildModelOption(InterviewController controller, String provider, String name, IconData icon, Color color) {
+    return Obx(() {
+      final isSelected = controller.selectedProvider.value == provider;
+      return GestureDetector(
+        onTap: () => controller.selectedProvider.value = provider,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 8.w),
+          decoration: BoxDecoration(
+            color: isSelected ? color.withOpacity(0.1) : Get.theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(15.r),
+            border: Border.all(
+              color: isSelected ? color : Colors.grey.withOpacity(0.2),
+              width: 2,
+            ),
+          ),
+          child: Column(
+            children: [
+              Icon(icon, color: isSelected ? color : Colors.grey, size: 28.sp),
+              SizedBox(height: 8.h),
+              Text(
+                name,
+                style: TextStyle(
+                  fontSize: 12.sp,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  color: isSelected ? color : Get.theme.textTheme.bodyMedium?.color,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    });
   }
 
   Widget _buildLevelCard(InterviewController controller, String level) {

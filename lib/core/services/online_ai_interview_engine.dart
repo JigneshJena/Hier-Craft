@@ -4,6 +4,7 @@ import 'ai_api_service.dart';
 import 'remote_config_service.dart';
 import 'package:get/get.dart';
 import 'package:logger/logger.dart';
+import '../../presentation/controllers/interview_controller.dart';
 
 class OnlineAIInterviewEngine implements InterviewEngine {
   final AiApiService _aiService = Get.find<AiApiService>();
@@ -13,8 +14,16 @@ class OnlineAIInterviewEngine implements InterviewEngine {
   @override
   Future<List<Question>> getQuestions(String domain, String difficulty) async {
     try {
-      final provider = _configService.getApiProvider();
-      final apiKey = _configService.getApiKey(difficulty);
+      // Get provider from controller if it exists, otherwise fallback to config
+      String provider = _configService.getApiProvider();
+      try {
+        final interviewController = Get.find<InterviewController>();
+        provider = interviewController.selectedProvider.value;
+      } catch (_) {
+        // Controller not found, use default provider
+      }
+      
+      final apiKey = _configService.getApiKey(difficulty, provider: provider);
       
       if (apiKey.isEmpty || apiKey.startsWith('AIzaSyDefault')) {
         _logger.w('⚠️ Valid API key not found in Remote Config for $provider');
@@ -58,8 +67,13 @@ class OnlineAIInterviewEngine implements InterviewEngine {
       // Get the question text from the keywords context
       final String questionText = questionId; // Using ID as question text temporarily
 
-      final provider = _configService.getApiProvider();
-      final apiKey = _configService.getApiKey('easy'); // Use default key for evaluation
+      String provider = _configService.getApiProvider();
+      try {
+        final interviewController = Get.find<InterviewController>();
+        provider = interviewController.selectedProvider.value;
+      } catch (_) {}
+
+      final apiKey = _configService.getApiKey('easy', provider: provider); // Use default key for evaluation
 
       _logger.i('Evaluating answer using $provider AI');
 

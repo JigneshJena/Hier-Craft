@@ -69,50 +69,42 @@ class RemoteConfigService extends GetxService {
 
   /// Get API key based on difficulty level
   /// Returns the appropriate API key for easy, medium, hard, or resume
-  String getApiKey(String difficulty) {
-    // Check provider first
-    String provider = getApiProvider();
+  /// Get API key based on difficulty level and provider
+  String getApiKey(String difficulty, {String? provider}) {
+    // Use specified provider or fall back to remote config provider
+    final targetProvider = (provider ?? getApiProvider()).toLowerCase();
     
-    if (provider == 'groq') {
+    if (targetProvider == 'groq') {
       String groqKey = _remoteConfig.getString('groq_api_key');
-      if (groqKey.isNotEmpty) {
+      if (groqKey.isNotEmpty && !groqKey.startsWith('AIzaSyDefault')) {
         _logger.d('Using groq_api_key for $difficulty');
         return groqKey;
       }
     }
 
-    // Then, try the main gemini_api_key which is our primary key
+    // Default to gemini_key for gemini or as general fallback
     String mainKey = _remoteConfig.getString('gemini_key');
     if (mainKey.isNotEmpty && !mainKey.startsWith('AIzaSyDefault')) {
-      _logger.d('Using main gemini_api_key for $difficulty');
+      _logger.d('Using main gemini_key for $difficulty');
       return mainKey;
     }
 
-    // Fallback to legacy/specific keys if main key is not set
+    // Fallback to legacy/specific keys
     String key;
     switch (difficulty.toLowerCase()) {
-      case 'fresher':
-      case 'easy':
-        key = _remoteConfig.getString('api_key_easy');
+      case 'experienced':
+      case 'hard':
+        key = _remoteConfig.getString('api_key_hard');
         break;
       case 'intermediate':
       case 'medium':
         key = _remoteConfig.getString('api_key_medium');
-        break;
-      case 'experienced':
-      case 'hard':
-        key = _remoteConfig.getString('api_key_hard');
         break;
       case 'resume':
         key = _remoteConfig.getString('api_key_resume');
         break;
       default:
         key = _remoteConfig.getString('api_key_easy');
-    }
-
-    // If key is still default/empty, log warning
-    if (key.isEmpty || key.startsWith('AIzaSyDefault')) {
-      _logger.w('Using default API key fallback for $difficulty');
     }
 
     return key;

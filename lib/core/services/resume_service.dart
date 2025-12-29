@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:get/get.dart';
@@ -128,9 +129,9 @@ class ResumeService extends GetxService {
   }
 
   /// Analyze resume using AI
-  Future<ResumeAnalysis> analyzeResume(String resumeText) async {
+  Future<ResumeAnalysis> analyzeResume(String resumeText, {String? base64Data, String? mimeType}) async {
     try {
-      _logger.i('Analyzing resume with AI');
+      _logger.i('Analyzing resume with AI (Multimodal: ${base64Data != null})');
       
       // Get API key and provider for resume analysis
       final apiKey = _configService.getApiKey('resume');
@@ -141,6 +142,8 @@ class ResumeService extends GetxService {
         resumeText: resumeText,
         apiKey: apiKey,
         provider: provider,
+        base64Data: base64Data,
+        mimeType: mimeType,
       );
 
       // Parse result into ResumeAnalysis model
@@ -156,20 +159,27 @@ class ResumeService extends GetxService {
 
   /// Complete resume analysis flow from file
   Future<ResumeAnalysis> analyzeResumeFromFile(File file) async {
-    String resumeText;
-    
-    // Extract text based on file type
-    final extension = file.path.split('.').last.toLowerCase();
-    
-    if (extension == 'pdf') {
-      resumeText = await extractTextFromPdf(file);
-    } else if (['jpg', 'jpeg', 'png'].contains(extension)) {
-      resumeText = await extractTextFromImage(file);
-    } else {
-      throw Exception('Unsupported file type: $extension');
-    }
+    try {
+      final bytes = await file.readAsBytes();
+      final base64Data = base64Encode(bytes);
+      final extension = file.path.split('.').last.toLowerCase();
+      
+      String mimeType;
+      if (extension == 'pdf') {
+        mimeType = 'application/pdf';
+      } else if (extension == 'jpg' || extension == 'jpeg') {
+        mimeType = 'image/jpeg';
+      } else if (extension == 'png') {
+        mimeType = 'image/png';
+      } else {
+        throw Exception('Unsupported file type: $extension');
+      }
 
-    // Analyze the extracted text
-    return await analyzeResume(resumeText);
+      // Analyze the file using multimodal AI
+      return await analyzeResume('', base64Data: base64Data, mimeType: mimeType);
+    } catch (e) {
+      _logger.e('Error analyzing resume from file: $e');
+      rethrow;
+    }
   }
 }

@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:get/get.dart';
 import 'package:logger/logger.dart';
 import '../../data/models/question_model.dart';
+import 'remote_config_service.dart';
 
 /// Service for calling AI APIs (Gemini, OpenAI, DeepSeek)
 /// Provides methods for question generation, answer evaluation, and resume analysis
@@ -71,14 +72,27 @@ class AiApiService extends GetxService {
     required String resumeText,
     required String apiKey,
     required String provider,
+    String? base64Data,
+    String? mimeType,
   }) async {
     try {
       _logger.i('Analyzing resume using $provider');
 
-      if (provider.toLowerCase() == 'gemini') {
-        return await _analyzeResumeGemini(resumeText, apiKey);
-      } else if (provider.toLowerCase() == 'openai' || provider.toLowerCase() == 'groq') {
-        return await _analyzeResumeGroq(resumeText, apiKey);
+      String activeProvider = provider;
+      String activeApiKey = apiKey;
+
+      // Force Gemini for multimodal analysis (Images/PDFs) since Groq doesn't support it natively here
+      if (base64Data != null && provider.toLowerCase() != 'gemini') {
+        _logger.i('Switching to Gemini for multimodal resume analysis');
+        activeProvider = 'gemini';
+        // Need to get Gemini key specifically
+        activeApiKey = Get.find<RemoteConfigService>().getApiKey('resume', provider: 'gemini');
+      }
+
+      if (activeProvider.toLowerCase() == 'gemini') {
+        return await _analyzeResumeGemini(resumeText, activeApiKey, base64Data, mimeType);
+      } else if (activeProvider.toLowerCase() == 'openai' || activeProvider.toLowerCase() == 'groq') {
+        return await _analyzeResumeGroq(resumeText, activeApiKey);
       } else {
         return {
           'overall_score': 0,
@@ -109,7 +123,7 @@ class AiApiService extends GetxService {
     int count,
   ) async {
     final url = Uri.parse(
-      'https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent',
+      'https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent',
     );
 
     final timestamp = DateTime.now().millisecondsSinceEpoch;
@@ -194,7 +208,7 @@ Return ONLY the JSON array, no other text.''';
     List<Keyword>? keywords,
   ) async {
     final url = Uri.parse(
-      'https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent',
+      'https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent',
     );
 
     final prompt = '''Evaluate this interview answer:
@@ -254,17 +268,21 @@ Return ONLY the JSON object.''';
 
   Future<Map<String, dynamic>> _analyzeResumeGemini(
     String resumeText,
-    String apiKey,
-  ) async {
+    String apiKey, [
+    String? base64Data,
+    String? mimeType,
+  ]) async {
     final url = Uri.parse(
-      'https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent',
+      'https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent',
     );
 
-    final prompt = '''Analyze this resume and provide feedback:
+    final prompt = resumeText.isNotEmpty && base64Data == null
+        ? '''Analyze this resume and provide feedback:
+\n$resumeText'''
+        : '''Analyze the attached resume and provide detailed feedback. 
+Focus on structure, content, keywords, and overall impression.''';
 
-$resumeText
-
-Provide analysis in JSON format:
+    final systemInstruction = '''Provide analysis in JSON format:
 {
   "overall_score": <number 0-100>,
   "strengths": [<list of strong points>],
@@ -274,6 +292,19 @@ Provide analysis in JSON format:
 }
 
 Return ONLY the JSON object.''';
+
+    final List<Map<String, dynamic>> parts = [
+      {'text': '$prompt\n\n$systemInstruction'}
+    ];
+
+    if (base64Data != null && mimeType != null) {
+      parts.add({
+        'inline_data': {
+          'mime_type': mimeType,
+          'data': base64Data,
+        }
+      });
+    }
 
     try {
       final cleanKey = apiKey.trim();
@@ -286,9 +317,7 @@ Return ONLY the JSON object.''';
         body: jsonEncode({
           'contents': [
             {
-              'parts': [
-                {'text': prompt}
-              ]
+              'parts': parts
             }
           ]
         }),
@@ -299,10 +328,19 @@ Return ONLY the JSON object.''';
         final text = data['candidates'][0]['content']['parts'][0]['text'];
         
         String jsonText = text;
+        
+        // Robust JSON extraction
         if (jsonText.contains('```json')) {
           jsonText = jsonText.split('```json')[1].split('```')[0].trim();
         } else if (jsonText.contains('```')) {
           jsonText = jsonText.split('```')[1].split('```')[0].trim();
+        } else if (!jsonText.trim().startsWith('{')) {
+          // Find first { and last }
+          final start = jsonText.indexOf('{');
+          final end = jsonText.lastIndexOf('}');
+          if (start != -1 && end != -1 && end > start) {
+            jsonText = jsonText.substring(start, end + 1);
+          }
         }
 
         return jsonDecode(jsonText);
@@ -494,13 +532,21 @@ Return ONLY the JSON object.''';
         final data = jsonDecode(response.body);
         String text = data['choices'][0]['message']['content'];
 
-        if (text.contains('```json')) {
-          text = text.split('```json')[1].split('```')[0].trim();
-        } else if (text.contains('```')) {
-          text = text.split('```')[1].split('```')[0].trim();
+        String jsonText = text;
+
+        if (jsonText.contains('```json')) {
+          jsonText = jsonText.split('```json')[1].split('```')[0].trim();
+        } else if (jsonText.contains('```')) {
+          jsonText = jsonText.split('```')[1].split('```')[0].trim();
+        } else if (!jsonText.trim().startsWith('{')) {
+          final start = jsonText.indexOf('{');
+          final end = jsonText.lastIndexOf('}');
+          if (start != -1 && end != -1 && end > start) {
+            jsonText = jsonText.substring(start, end + 1);
+          }
         }
 
-        return jsonDecode(text);
+        return jsonDecode(jsonText);
       } else {
         _logger.e('Groq API error: ${response.statusCode}');
         return {
