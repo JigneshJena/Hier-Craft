@@ -81,6 +81,8 @@ class MyApp extends StatelessWidget {
           themeMode: themeController.theme,
           initialRoute: AppRoutes.splash,
           getPages: AppRoutes.routes,
+          defaultTransition: Transition.fade,
+          transitionDuration: const Duration(milliseconds: 400),
         );
       },
     );

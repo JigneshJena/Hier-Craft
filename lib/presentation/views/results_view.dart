@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import '../controllers/results_controller.dart';
 import '../../app/routes/app_routes.dart';
+import '../../app/themes/app_colors.dart';
 
 class ResultsView extends StatelessWidget {
   const ResultsView({super.key});
@@ -10,180 +11,313 @@ class ResultsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(ResultsController());
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: const Text("Interview Results"),
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        automaticallyImplyLeading: false,
-      ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(20.w),
-        child: Column(
-          children: [
-            _buildScoreCard(context, controller),
-            SizedBox(height: 30.h),
-            _buildCategoryBreakdown(context, controller),
-            SizedBox(height: 30.h),
-            _buildActionButtons(controller),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildScoreCard(BuildContext context, ResultsController controller) {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.symmetric(vertical: 30.h),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Get.theme.colorScheme.primary,
-            Get.theme.colorScheme.primary.withOpacity(0.8),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(30.r),
-        boxShadow: [
-          BoxShadow(
-            color: Get.theme.colorScheme.primary.withOpacity(0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Column(
+      body: Stack(
         children: [
-          Text(
-            controller.performanceMessage,
-            style: Get.theme.textTheme.titleLarge?.copyWith(color: Colors.white, fontSize: 24.sp),
-          ),
-          SizedBox(height: 20.h),
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              SizedBox(
-                height: 150.h,
-                width: 150.w,
-                child: CircularProgressIndicator(
-                  value: controller.percentage / 100,
-                  strokeWidth: 12,
-                  backgroundColor: Colors.white.withOpacity(0.2),
-                  valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              ),
-              Column(
+          _buildBackground(isDark),
+          
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.symmetric(horizontal: 24.w),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    "${controller.totalScore}",
-                    style: Get.theme.textTheme.displayLarge?.copyWith(color: Colors.white, fontSize: 40.sp),
-                  ),
-                  Text(
-                    "out of ${controller.maxScore}",
-                    style: Get.theme.textTheme.bodyMedium?.copyWith(color: Colors.white70),
-                  ),
+                  SizedBox(height: 20.h),
+                  _buildHeader(context),
+                  SizedBox(height: 32.h),
+                  _buildScoreBillboard(controller, isDark),
+                  SizedBox(height: 40.h),
+                  _buildSectionTitle("Performance Audit"),
+                  SizedBox(height: 16.h),
+                  _buildQuestionBreakdown(controller, isDark),
+                  SizedBox(height: 40.h),
+                  _buildActionDock(controller),
+                  SizedBox(height: 40.h),
                 ],
               ),
-            ],
-          ),
-          SizedBox(height: 20.h),
-          Text(
-            "Overall Performance in ${controller.domain}",
-            style: Get.theme.textTheme.bodyMedium?.copyWith(color: Colors.white),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildCategoryBreakdown(BuildContext context, ResultsController controller) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "Question Breakdown",
-          style: Get.theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: Get.theme.colorScheme.primary,
-          ),
-        ),
-        SizedBox(height: 15.h),
-        ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: controller.results.length,
-          itemBuilder: (context, index) {
-            final result = controller.results[index];
-            final score = result['score'] as int;
-            
-            return Card(
-              margin: EdgeInsets.only(bottom: 12.h),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.r)),
-              child: ExpansionTile(
-                leading: CircleAvatar(
-                  backgroundColor: score >= 7 ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
-                  child: Text("$score", style: TextStyle(color: score >= 7 ? Colors.green : Colors.orange)),
+  Widget _buildBackground(bool isDark) {
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            top: -150,
+            left: -50,
+            child: Container(
+              width: 400,
+              height: 400,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [AppColors.meshViolet.withOpacity(0.1), Colors.transparent],
                 ),
-                title: Text(
-                  result['question'],
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Get.theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-                ),
-                subtitle: Text(
-                  result['feedback'],
-                  style: Get.theme.textTheme.bodySmall,
-                ),
-                children: [
-                  Padding(
-                    padding: EdgeInsets.all(15.w),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text("Your Answer:", style: Get.theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold)),
-                        SizedBox(height: 4.h),
-                        Text(result['answer'], style: Get.theme.textTheme.bodyMedium),
-                      ],
-                    ),
-                  ),
-                ],
               ),
-            );
-          },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    return Row(
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "ASSESSMENT REPORT",
+              style: TextStyle(
+                fontSize: 10.sp,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 2.5,
+                color: AppColors.primaryStart,
+              ),
+            ),
+            SizedBox(height: 4.h),
+            Text(
+              "Your Performance Analysis",
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
         ),
       ],
     );
   }
 
-  Widget _buildActionButtons(ResultsController controller) {
+  Widget _buildScoreBillboard(ResultsController controller, bool isDark) {
+    final primaryColor = isDark ? AppColors.primaryEnd : AppColors.primaryStart;
+    
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(32.w),
+      decoration: BoxDecoration(
+        color: Get.theme.cardTheme.color,
+        borderRadius: BorderRadius.circular(32.r),
+        border: Border.all(color: primaryColor.withOpacity(0.1)),
+        boxShadow: [
+          BoxShadow(
+            color: primaryColor.withOpacity(0.05),
+            blurRadius: 40,
+            offset: const Offset(0, 20),
+          )
+        ],
+      ),
+      child: Column(
+        children: [
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              SizedBox(
+                height: 160.w,
+                width: 160.w,
+                child: CircularProgressIndicator(
+                  value: controller.percentage / 100,
+                  strokeWidth: 12,
+                  strokeCap: StrokeCap.round,
+                  backgroundColor: primaryColor.withOpacity(0.05),
+                  valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
+                ),
+              ),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    "${controller.percentage.toInt()}%",
+                    style: TextStyle(
+                      fontSize: 36.sp,
+                      fontWeight: FontWeight.w900,
+                      color: primaryColor,
+                      letterSpacing: -1,
+                    ),
+                  ),
+                  Text(
+                    "COMPLIANCE",
+                    style: TextStyle(
+                      fontSize: 10.sp,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.5,
+                      color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          SizedBox(height: 32.h),
+          Text(
+            controller.performanceMessage.toUpperCase(),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1,
+              color: primaryColor,
+            ),
+          ),
+          SizedBox(height: 8.h),
+          Text(
+            "Final Evaluation in ${controller.domain}",
+            style: Theme.of(Get.context!).textTheme.bodySmall,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Text(
+      title,
+      style: TextStyle(
+        fontSize: 14.sp,
+        fontWeight: FontWeight.w900,
+        letterSpacing: 1,
+        color: Get.theme.colorScheme.onSurface,
+      ),
+    );
+  }
+
+  Widget _buildQuestionBreakdown(ResultsController controller, bool isDark) {
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: controller.results.length,
+      separatorBuilder: (_, __) => SizedBox(height: 16.h),
+      itemBuilder: (context, index) {
+        final result = controller.results[index];
+        final score = result['score'] as int;
+        final color = score >= 8 ? AppColors.accentEmerald : (score >= 5 ? AppColors.accentAmber : AppColors.accentRose);
+
+        return Container(
+          decoration: BoxDecoration(
+            color: Get.theme.cardTheme.color?.withOpacity(0.5),
+            borderRadius: BorderRadius.circular(24.r),
+            border: Border.all(color: color.withOpacity(0.15)),
+          ),
+          child: Theme(
+            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+            child: ExpansionTile(
+              tilePadding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 8.h),
+              leading: Container(
+                width: 44.w,
+                height: 44.w,
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+                child: Center(
+                  child: Text(
+                    "$score",
+                    style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 16.sp),
+                  ),
+                ),
+              ),
+              title: Text(
+                result['question'],
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14.sp),
+              ),
+              subtitle: Text(
+                "Feedback: ${result['feedback']}",
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 11.sp, color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
+              ),
+              children: [
+                Padding(
+                  padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 20.h),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildAuditPoint("VERBATIM RECORD", result['answer'], isDark),
+                      SizedBox(height: 16.h),
+                      _buildAuditPoint("AI FEEDBACK", result['feedback'], isDark, highlight: color),
+                      if (result['explanation'] != null) ...[
+                        SizedBox(height: 16.h),
+                        _buildAuditPoint("SUGGESTED ANSWER", result['explanation'], isDark, highlight: AppColors.primaryStart),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildAuditPoint(String label, String content, bool isDark, {Color? highlight}) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ElevatedButton(
-          onPressed: () => Get.offAllNamed(AppRoutes.domain),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Get.theme.colorScheme.primary,
-            foregroundColor: Colors.white,
-            minimumSize: Size(double.infinity, 55.h),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.r)),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 9.sp,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1.5,
+            color: highlight ?? (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
           ),
-          child: const Text("Try Different Domain"),
         ),
-        SizedBox(height: 12.h),
-        OutlinedButton(
-          onPressed: () {
-             Get.back(); // Returns to InterviewView which will show difficulty selection
-          },
-          style: OutlinedButton.styleFrom(
-            minimumSize: Size(double.infinity, 55.h),
-            side: BorderSide(color: Get.theme.colorScheme.primary),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.r)),
+        SizedBox(height: 6.h),
+        Text(
+          content,
+          style: TextStyle(
+            fontSize: 13.sp,
+            height: 1.5,
+            color: Get.theme.colorScheme.onSurface,
           ),
-          child: const Text("Retake Interview"),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionDock(ResultsController controller) {
+    return Row(
+      children: [
+        Expanded(
+          child: ElevatedButton(
+            onPressed: () => Get.offAllNamed(AppRoutes.domain),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Get.theme.colorScheme.onSurface.withOpacity(0.05),
+              foregroundColor: Get.theme.colorScheme.onSurface,
+              padding: EdgeInsets.symmetric(vertical: 18.h),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20.r),
+                side: BorderSide(color: Get.theme.colorScheme.onSurface.withOpacity(0.1)),
+              ),
+            ),
+            child: Text("SWITCH DOMAIN", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13.sp, letterSpacing: 1)),
+          ),
+        ),
+        SizedBox(width: 16.w),
+        Expanded(
+          child: ElevatedButton(
+            onPressed: () => Get.back(),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryStart,
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.symmetric(vertical: 18.h),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+              elevation: 0,
+            ),
+            child: Text("RETAKE AUDIT", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13.sp, letterSpacing: 1)),
+          ),
         ),
       ],
     );

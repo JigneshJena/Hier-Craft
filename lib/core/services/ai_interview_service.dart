@@ -1,4 +1,4 @@
-import 'package:get/get.dart';
+ import 'package:get/get.dart';
 import 'package:logger/logger.dart';
 import 'remote_config_service.dart';
 import 'dart:convert';

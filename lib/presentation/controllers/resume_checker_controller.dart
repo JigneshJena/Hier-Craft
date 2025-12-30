@@ -101,6 +101,9 @@ class ResumeCheckerController extends GetxController {
         backgroundColor: Colors.green,
         colorText: Colors.white,
       );
+
+      // Navigate to dedicated analysis page
+      Get.toNamed('/resume-analysis', arguments: result);
     } catch (e) {
       _logger.e('Error analyzing file: $e');
       errorMessage.value = 'Failed to analyze resume: ${e.toString()}';

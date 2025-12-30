@@ -127,19 +127,26 @@ class AiApiService extends GetxService {
     );
 
     final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final prompt = '''Generate $count UNIQUE and DIVERSE interview questions for $domain domain with $difficulty difficulty level.
-Session ID: $timestamp (Ensure questions are different from previous sessions).
+final prompt = '''Generate $count HIGHLY SPECIFIC and DIVERSE interview questions for the $domain domain at a $difficulty level. 
+Session ID: $timestamp
+
+CRITICAL INSTRUCTIONS:
+1. DO NOT ask generic questions like "What is $domain?".
+2. EXPLORE diverse sub-topics: performance, security, architecture, state management, and edge cases.
+3. INCLUDE at least 2 logical reasoning or scenario-based questions (e.g., "How would you solve X?").
+4. ENSURE each question is unique and technical.
 
 Return in JSON format as an array with each question having:
 - id: unique identifier
 - difficulty: "$difficulty"
-- category: relevant category
-- text: the question
+- category: relevant specific sub-category
+- text: the technical question
+- explanation: a detailed correct answer or logical reasoning
 - keywords: array of {word, points} for evaluation
 - maxPoints: 10
 
 Example format:
-[{"id":"q1","difficulty":"$difficulty","category":"Core","text":"What is...?","keywords":[{"word":"example","points":5}],"maxPoints":10}]
+[{"id":"q1","difficulty":"$difficulty","category":"Performance","text":"How would you optimize...?","explanation":"The solution involves...","keywords":[{"word":"memory","points":5}],"maxPoints":10}]
 
 Return ONLY the JSON array, no other text.''';
 
@@ -220,7 +227,8 @@ Provide evaluation in JSON format:
 {
   "score": <number 0-10>,
   "matchedKeywords": [<list of important concepts mentioned>],
-  "feedback": "<detailed constructive feedback>"
+  "feedback": "<detailed constructive feedback>",
+  "correct_answer": "<the ideal detailed answer for this question>"
 }
 
 Return ONLY the JSON object.''';
@@ -377,19 +385,26 @@ Return ONLY the JSON object.''';
     const String apiUrl = 'https://api.groq.com/openai/v1/chat/completions';
 
     final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final prompt = '''Generate $count UNIQUE and DIVERSE interview questions for $domain domain with $difficulty difficulty level. 
-Session ID: $timestamp (Ensure questions are different from previous sessions).
+    final prompt = '''Generate $count HIGHLY SPECIFIC and DIVERSE interview questions for the $domain domain at a $difficulty level.
+Session ID: $timestamp
+
+Strict Guidelines:
+1. AVOID basic definitions. Focus on application and logic.
+2. COVER different modules: networking, data structures, concurrency, and design patterns.
+3. ASK about specific scenarios (e.g., "What happens if Y occurs?").
+4. Provide technical, non-repetitive content.
 
 Return in JSON format as an array with each question having:
 - id: unique identifier
 - difficulty: "$difficulty"
-- category: relevant category
-- text: the question
+- category: relevant technical category
+- text: the technical question
+- explanation: a detailed correct answer or logical reasoning
 - keywords: array of {word, points} for evaluation
 - maxPoints: 10
 
 Example format:
-[{"id":"q1","difficulty":"$difficulty","category":"Core","text":"What is...?","keywords":[{"word":"example","points":5}],"maxPoints":10}]
+[{"id":"q1","difficulty":"$difficulty","category":"Concurrency","text":"Explain the race condition in...?","explanation":"It occurs when...","keywords":[{"word":"synchronization","points":5}],"maxPoints":10}]
 
 Return ONLY the JSON array, no other text.''';
 
@@ -449,7 +464,8 @@ Provide evaluation in JSON format:
 {
   "score": <number 0-10>,
   "matchedKeywords": [<list of important concepts mentioned>],
-  "feedback": "<detailed constructive feedback>"
+  "feedback": "<detailed constructive feedback>",
+  "correct_answer": "<the ideal detailed answer for this question>"
 }
 
 Return ONLY the JSON object.''';

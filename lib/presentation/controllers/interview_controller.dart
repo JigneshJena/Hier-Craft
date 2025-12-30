@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/services/interview_engine.dart';
-import '../../core/services/offline_interview_engine.dart';
 import '../../core/services/online_ai_interview_engine.dart';
 import '../../core/services/connectivity_service.dart';
 import '../../core/services/voice_service.dart';
@@ -40,13 +39,8 @@ class InterviewController extends GetxController {
 
   // Get the appropriate engine based on connectivity
   InterviewEngine _getEngine() {
-    if (_connectivityService.isOnline.value) {
-      print('✅ Using Online AI Engine');
-      return OnlineAIInterviewEngine();
-    } else {
-      print('📝 Using Offline Practice Engine (JSON)');
-      return OfflineInterviewEngine();
-    }
+    // ALWAYS USE ONLINE AI ENGINE as per user request to remove questions.json
+    return OnlineAIInterviewEngine();
   }
 
   Future<void> selectDifficulty(String level) async {
@@ -150,6 +144,7 @@ class InterviewController extends GetxController {
       'answer': answerText,
       'score': evaluation['score'],
       'feedback': evaluation['feedback'],
+      'explanation': evaluation['correct_answer'] ?? question.explanation,
     });
 
     currentTranscription.value = '';
@@ -169,6 +164,7 @@ class InterviewController extends GetxController {
       'answer': 'Skipped',
       'score': 0,
       'feedback': 'Question was skipped.',
+      'explanation': questions[currentQuestionIndex.value].explanation,
     });
 
     currentTranscription.value = '';

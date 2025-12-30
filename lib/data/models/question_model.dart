@@ -5,6 +5,7 @@ class Question {
   final List<Keyword> keywords;
   final int maxPoints;
   final String? hint;
+  final String? explanation;
   final String difficulty;
 
   Question({
@@ -14,6 +15,7 @@ class Question {
     required this.keywords,
     required this.maxPoints,
     this.difficulty = 'Fresher',
+    this.explanation,
     this.hint,
   });
 
@@ -27,6 +29,7 @@ class Question {
           .map((k) => Keyword.fromJson(k))
           .toList(),
       maxPoints: json['maxPoints'] ?? 10,
+      explanation: json['explanation'],
       hint: json['hint'],
     );
   }
