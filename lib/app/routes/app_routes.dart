@@ -7,6 +7,8 @@ import '../../presentation/views/resume_checker_view.dart';
 import '../../presentation/views/resume_builder_view.dart';
 import '../../presentation/views/resume_analysis_view.dart';
 import '../../presentation/views/generated_resume_view.dart';
+import '../../presentation/views/home_view.dart';
+import '../../presentation/views/prep_hub_view.dart';
 
 class AppRoutes {
   static const String splash = '/';
@@ -17,6 +19,8 @@ class AppRoutes {
   static const String resumeBuilder = '/resume-builder';
   static const String resumeAnalysis = '/resume-analysis';
   static const String generatedResume = '/generated-resume';
+  static const String home = '/home';
+  static const String prepHub = '/prep-hub';
 
   static final routes = [
     GetPage(
@@ -50,6 +54,14 @@ class AppRoutes {
     GetPage(
       name: generatedResume,
       page: () => const GeneratedResumeView(),
+    ),
+    GetPage(
+      name: home,
+      page: () => const HomeView(),
+    ),
+    GetPage(
+      name: prepHub,
+      page: () => const PrepHubView(),
     ),
   ];
 }
