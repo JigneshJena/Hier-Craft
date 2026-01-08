@@ -3,7 +3,7 @@ class Question {
   final String category;
   final String text;
   final List<Keyword> keywords;
-  final int maxPoints;
+  final num maxPoints;
   final String? hint;
   final String? explanation;
   final String difficulty;
@@ -28,7 +28,7 @@ class Question {
       keywords: (json['keywords'] as List)
           .map((k) => Keyword.fromJson(k))
           .toList(),
-      maxPoints: json['maxPoints'] ?? 10,
+      maxPoints: json['maxPoints'] ?? 10.0,
       explanation: json['explanation'],
       hint: json['hint'],
     );
@@ -37,7 +37,7 @@ class Question {
 
 class Keyword {
   final String word;
-  final int points;
+  final num points;
   final List<String> synonyms;
 
   Keyword({
@@ -59,10 +59,12 @@ class InterviewDomain {
   final String name;
   final String icon;
   final List<String> subdomains;
+  final String category; // e.g., 'BTech', 'MBBS', 'CS', 'General'
 
   InterviewDomain({
     required this.name,
     required this.icon,
     required this.subdomains,
+    this.category = 'Professional',
   });
 }

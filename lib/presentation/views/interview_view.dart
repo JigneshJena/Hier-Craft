@@ -243,35 +243,73 @@ class InterviewView extends StatelessWidget {
   }
 
   Widget _buildInterviewSession(InterviewController controller, bool isDark) {
-    if (controller.isLoading.value) {
-      return _buildAdvancedLoading();
-    }
+    return Obx(() {
+      if (controller.isLoading.value) {
+        return _buildAdvancedLoading();
+      }
 
-    final currentQuestion = controller.questions[controller.currentQuestionIndex.value];
+      if (controller.questions.isEmpty) {
+        return Center(
+          child: Padding(
+            padding: EdgeInsets.all(32.w),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.error_outline_rounded, color: AppColors.accentRose, size: 64.sp),
+                SizedBox(height: 24.h),
+                Text(
+                  "No Questions Available",
+                  style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 12.h),
+                Text(
+                  "We couldn't generate questions for this session. Please check your internet or try a different model.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey),
+                ),
+                SizedBox(height: 32.h),
+                ElevatedButton(
+                  onPressed: () => Get.back(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryStart,
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(horizontal: 32.w, vertical: 16.h),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
+                  ),
+                  child: const Text("Go Back"),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
 
-    return Column(
-      children: [
-        SizedBox(height: 60.h),
-        
-        // AI Avatar Section
-        _buildAIAvatar(controller, isDark),
-        
-        SizedBox(height: 24.h),
-        
-        // Question Section
-        Expanded(
-          child: _buildQuestionSection(currentQuestion.text, isDark),
-        ),
-        
-        // Input Section
-        _buildFloatingInputSection(controller, isDark),
-        
-        // Actions Section
-        _buildActionDock(controller, isDark),
-        
-        SizedBox(height: 24.h),
-      ],
-    );
+      final currentQuestion = controller.questions[controller.currentQuestionIndex.value];
+
+      return Column(
+        children: [
+          SizedBox(height: 60.h),
+          
+          // AI Avatar Section
+          _buildAIAvatar(controller, isDark),
+          
+          SizedBox(height: 24.h),
+          
+          // Question Section
+          Expanded(
+            child: _buildQuestionSection(currentQuestion.text, isDark),
+          ),
+          
+          // Input Section
+          _buildFloatingInputSection(controller, isDark),
+          
+          // Actions Section
+          _buildActionDock(controller, isDark),
+          
+          SizedBox(height: 24.h),
+        ],
+      );
+    });
   }
 
   Widget _buildAdvancedLoading() {
@@ -537,6 +575,7 @@ class InterviewView extends StatelessWidget {
     return Obx(() {
       final isListening = controller.avatarState.value == AvatarState.listening;
       return GestureDetector(
+        onTap: controller.toggleListening,
         onLongPressStart: (_) => controller.startListening(),
         onLongPressEnd: (_) => controller.stopListening(),
         child: AnimatedContainer(

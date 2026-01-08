@@ -1,7 +1,7 @@
 import 'package:get/get.dart';
 
 class ResultsController extends GetxController {
-  late int totalScore;
+  late num totalScore;
   late int maxScore;
   late List<Map<String, dynamic>> results;
   late String domain;
@@ -9,7 +9,7 @@ class ResultsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    totalScore = Get.arguments['totalScore'] ?? 0;
+    totalScore = Get.arguments['totalScore'] ?? 0.0;
     maxScore = Get.arguments['maxScore'] ?? 100;
     results = Get.arguments['results'] ?? [];
     domain = Get.arguments['domain'] ?? 'Software';

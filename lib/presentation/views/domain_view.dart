@@ -30,6 +30,7 @@ class DomainView extends StatelessWidget {
               children: [
                 _buildHeader(context, connectivityService),
                 _buildSearchBar(controller),
+                _buildCategoryList(controller),
                 Expanded(
                   child: _buildDashboardGrid(controller),
                 ),
@@ -185,6 +186,56 @@ class DomainView extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildCategoryList(DomainSelectionController controller) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 24.w),
+          child: Text(
+            "Filter by Degree / Course",
+            style: GoogleFonts.outfit(
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w700,
+              color: AppColors.primaryStart,
+            ),
+          ),
+        ),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 8.h),
+          child: Obx(() => Row(
+            children: controller.categories.map((category) {
+              final isSelected = controller.selectedCategory.value == category;
+              return Padding(
+                padding: EdgeInsets.only(right: 8.w),
+                child: FilterChip(
+                  label: Text(category),
+                  selected: isSelected,
+                  onSelected: (_) => controller.selectCategory(category),
+                  selectedColor: AppColors.primaryStart.withOpacity(0.1),
+                  checkmarkColor: AppColors.primaryStart,
+                  labelStyle: GoogleFonts.outfit(
+                    fontSize: 11.sp,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                    color: isSelected ? AppColors.primaryStart : AppColors.lightTextSecondary,
+                  ),
+                  padding: EdgeInsets.symmetric(horizontal: 4.w),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16.r),
+                    side: BorderSide(
+                      color: isSelected ? AppColors.primaryStart.withOpacity(0.5) : Colors.grey.withOpacity(0.1),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          )),
+        ),
+      ],
     );
   }
 

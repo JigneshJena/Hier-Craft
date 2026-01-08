@@ -13,6 +13,8 @@ import 'core/services/connectivity_service.dart';
 import 'core/services/ai_api_service.dart';
 import 'core/services/resume_service.dart';
 import 'core/services/ai_interview_service.dart';
+import 'core/services/history_service.dart'; // Added
+import 'core/services/notification_service.dart';
 import 'app/constants/app_constants.dart';
 import 'app/routes/app_routes.dart';
 
@@ -33,6 +35,10 @@ void main() async {
   Get.put(ThemeController());
   Get.put(ScoringService());
   Get.put(AiApiService());
+  Get.put(HistoryService());
+  
+  // Initialize Notification Service
+  await Get.putAsync(() => NotificationService().init());
   
   // Initialize Remote Config first (required by ResumeService)
   await Get.putAsync(() => RemoteConfigService().init());

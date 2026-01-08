@@ -133,15 +133,22 @@ class ResumeService extends GetxService {
     try {
       _logger.i('Analyzing resume with AI (Multimodal: ${base64Data != null})');
       
-      // Get API key and provider for resume analysis
-      final apiKey = _configService.getApiKey('resume');
-      final provider = _configService.getApiProvider();
+      // Get active providers
+      final providers = _configService.getActiveProviders();
+      if (providers.isEmpty) throw Exception('No AI providers configured');
+
+      // Use the first active provider (usually Gemini for multimodal)
+      final providerConfig = providers.firstWhere(
+        (p) => p.provider == 'gemini', 
+        orElse: () => providers.first
+      );
 
       // Call AI service for analysis
       final result = await _aiService.analyzeResume(
         resumeText: resumeText,
-        apiKey: apiKey,
-        provider: provider,
+        apiKey: providerConfig.apiKey,
+        provider: providerConfig.provider,
+        model: providerConfig.model,
         base64Data: base64Data,
         mimeType: mimeType,
       );

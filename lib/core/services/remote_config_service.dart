@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:get/get.dart';
 import 'package:logger/logger.dart';
+import '../../data/models/ai_provider_model.dart';
 
 /// Service for managing Firebase Remote Config
 /// Handles fetching API keys and configuration from Firebase
@@ -14,13 +16,8 @@ class RemoteConfigService extends GetxService {
 
   // Default values - these will be overridden by Firebase Remote Config
   final Map<String, dynamic> _defaults = {
-    'gemini_key': 'AIzaSyDefault_Gemini_Key', // Simple string key
-    'groq_api_key': '', // Groq API Key
-    'api_key_easy': 'AIzaSyDefault_Easy_Key',
-    'api_key_medium': 'AIzaSyDefault_Medium_Key',
-    'api_key_hard': 'AIzaSyDefault_Hard_Key',
-    'api_key_resume': 'AIzaSyDefault_Resume_Key',
-    'api_provider': 'groq', // Options: gemini, openai, deepseek, groq
+    'ai_providers_config': '[]', // JSON array of AIProviderConfig
+    'api_provider': 'gemini', // Default fallback provider type
   };
 
   /// Initialize Remote Config service
@@ -67,47 +64,49 @@ class RemoteConfigService extends GetxService {
     }
   }
 
-  /// Get API key based on difficulty level
-  /// Returns the appropriate API key for easy, medium, hard, or resume
-  /// Get API key based on difficulty level and provider
-  String getApiKey(String difficulty, {String? provider}) {
-    // Use specified provider or fall back to remote config provider
-    final targetProvider = (provider ?? getApiProvider()).toLowerCase();
-    
-    if (targetProvider == 'groq') {
-      String groqKey = _remoteConfig.getString('groq_api_key');
-      if (groqKey.isNotEmpty && !groqKey.startsWith('AIzaSyDefault')) {
-        _logger.d('Using groq_api_key for $difficulty');
-        return groqKey;
+  /// Get all configured AI providers from Remote Config
+  List<AIProviderConfig> getProviders() {
+    try {
+      final String configJson = _remoteConfig.getString('ai_providers_config');
+      if (configJson.isEmpty || configJson == '[]') {
+        _logger.w('No AI providers configured in Remote Config');
+        return [];
       }
-    }
 
-    // Default to gemini_key for gemini or as general fallback
-    String mainKey = _remoteConfig.getString('gemini_key');
-    if (mainKey.isNotEmpty && !mainKey.startsWith('AIzaSyDefault')) {
-      _logger.d('Using main gemini_key for $difficulty');
-      return mainKey;
+      final List<dynamic> decoded = jsonDecode(configJson);
+      return decoded.map((item) => AIProviderConfig.fromJson(item)).toList();
+    } catch (e) {
+      _logger.e('Error parsing ai_providers_config: $e');
+      return [];
     }
+  }
 
-    // Fallback to legacy/specific keys
-    String key;
-    switch (difficulty.toLowerCase()) {
-      case 'experienced':
-      case 'hard':
-        key = _remoteConfig.getString('api_key_hard');
-        break;
-      case 'intermediate':
-      case 'medium':
-        key = _remoteConfig.getString('api_key_medium');
-        break;
-      case 'resume':
-        key = _remoteConfig.getString('api_key_resume');
-        break;
-      default:
-        key = _remoteConfig.getString('api_key_easy');
+  /// Get active providers only
+  List<AIProviderConfig> getActiveProviders() {
+    return getProviders().where((p) => p.isActive).toList();
+  }
+
+  /// Get a specific provider by ID or the first active one of a specific type
+  AIProviderConfig? getProvider({String? id, String? type}) {
+    final providers = getActiveProviders();
+    if (id != null) {
+      return providers.firstWhereOrNull((p) => p.id == id);
     }
+    if (type != null) {
+      return providers.firstWhereOrNull((p) => p.provider.toLowerCase() == type.toLowerCase());
+    }
+    return providers.isNotEmpty ? providers.first : null;
+  }
 
-    return key;
+  /// Legacy compatibility: Get API key (not recommended, use getProvider instead)
+  String getApiKey(String difficulty, {String? provider}) {
+    final config = getProvider(type: provider);
+    if (config != null) {
+      _logger.d('SUCCESS: Using ${config.id} from dynamic config (Ends with: ...${config.apiKey.substring(config.apiKey.length - 4)})');
+      return config.apiKey;
+    }
+    _logger.w('WARNING: No active provider found for $provider');
+    return '';
   }
 
   /// Get the configured AI provider (gemini, openai, deepseek)
@@ -128,12 +127,10 @@ class RemoteConfigService extends GetxService {
 
   /// Get all current values (for debugging)
   Map<String, String> getAllKeys() {
+    final providers = getActiveProviders();
     return {
-      'easy': _remoteConfig.getString('api_key_easy'),
-      'medium': _remoteConfig.getString('api_key_medium'),
-      'hard': _remoteConfig.getString('api_key_hard'),
-      'resume': _remoteConfig.getString('api_key_resume'),
-      'provider': _remoteConfig.getString('api_provider'),
+      for (var p in providers) p.id: p.apiKey,
+      'provider': getApiProvider(),
     };
   }
 }
