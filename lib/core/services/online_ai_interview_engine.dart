@@ -64,7 +64,7 @@ class OnlineAIInterviewEngine implements InterviewEngine {
 
   @override
   Future<Map<String, dynamic>> evaluateAnswer(
-    String questionId,
+    String questionText,
     String answer,
     List<Keyword> keywords,
   ) async {
@@ -78,7 +78,7 @@ class OnlineAIInterviewEngine implements InterviewEngine {
       _logger.i('Evaluating answer using ${providerConfig.id}');
 
       return await _aiService.evaluateAnswer(
-        question: questionId,
+        question: questionText,
         answer: answer,
         apiKey: providerConfig.apiKey,
         provider: providerConfig.provider,

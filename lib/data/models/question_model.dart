@@ -33,6 +33,14 @@ class Question {
       hint: json['hint'],
     );
   }
+
+  String get displayHint {
+    if (hint != null && hint!.isNotEmpty) return hint!;
+    if (keywords.isNotEmpty) {
+      return "Try to use these keywords: ${keywords.map((k) => k.word).join(', ')}";
+    }
+    return "No hint available for this question.";
+  }
 }
 
 class Keyword {

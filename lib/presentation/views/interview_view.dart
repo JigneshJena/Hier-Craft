@@ -286,27 +286,41 @@ class InterviewView extends StatelessWidget {
 
       final currentQuestion = controller.questions[controller.currentQuestionIndex.value];
 
-      return Column(
-        children: [
-          SizedBox(height: 60.h),
-          
-          // AI Avatar Section
-          _buildAIAvatar(controller, isDark),
-          
-          SizedBox(height: 24.h),
-          
-          // Question Section
-          Expanded(
-            child: _buildQuestionSection(currentQuestion.text, isDark),
+      return CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 24.h),
+              child: Column(
+                children: [
+                  SizedBox(height: 36.h), // Adjusted for safe area and sliver
+                  
+                  // AI Avatar Section
+                  _buildAIAvatar(controller, isDark),
+                  
+                  SizedBox(height: 24.h),
+                  
+                  // Question Section
+                  _buildQuestionSection(currentQuestion.text, isDark),
+                  
+                  // Hint Section
+                  _buildHintSection(controller, currentQuestion, isDark),
+                  
+                  const Spacer(),
+                  
+                  // Input Section
+                  _buildFloatingInputSection(controller, isDark),
+                  
+                  // Actions Section
+                  _buildActionDock(controller, isDark),
+                  
+                  SizedBox(height: 12.h),
+                ],
+              ),
+            ),
           ),
-          
-          // Input Section
-          _buildFloatingInputSection(controller, isDark),
-          
-          // Actions Section
-          _buildActionDock(controller, isDark),
-          
-          SizedBox(height: 24.h),
         ],
       );
     });
@@ -438,33 +452,31 @@ class InterviewView extends StatelessWidget {
   Widget _buildQuestionSection(String text, bool isDark) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 24.w),
-      child: SingleChildScrollView(
-        child: Column(
-          children: [
-            Icon(Icons.auto_awesome_rounded, color: AppColors.primaryStart.withOpacity(0.5), size: 32.sp),
-            SizedBox(height: 16.h),
-            DefaultTextStyle(
-              style: Get.theme.textTheme.titleLarge!.copyWith(
-                fontSize: 20.sp,
-                fontWeight: FontWeight.w800,
-                height: 1.4,
-                letterSpacing: -0.5,
-              ),
-              child: AnimatedTextKit(
-                key: ValueKey(text),
-                animatedTexts: [
-                  TypewriterAnimatedText(
-                    text,
-                    textAlign: TextAlign.center,
-                    speed: const Duration(milliseconds: 30),
-                  ),
-                ],
-                totalRepeatCount: 1,
-                displayFullTextOnTap: true,
-              ),
+      child: Column(
+        children: [
+          Icon(Icons.auto_awesome_rounded, color: AppColors.primaryStart.withOpacity(0.5), size: 32.sp),
+          SizedBox(height: 16.h),
+          DefaultTextStyle(
+            style: Get.theme.textTheme.titleLarge!.copyWith(
+              fontSize: 20.sp,
+              fontWeight: FontWeight.w800,
+              height: 1.4,
+              letterSpacing: -0.5,
             ),
-          ],
-        ),
+            child: AnimatedTextKit(
+              key: ValueKey(text),
+              animatedTexts: [
+                TypewriterAnimatedText(
+                  text,
+                  textAlign: TextAlign.center,
+                  speed: const Duration(milliseconds: 30),
+                ),
+              ],
+              totalRepeatCount: 1,
+              displayFullTextOnTap: true,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -558,6 +570,13 @@ class InterviewView extends StatelessWidget {
             color: Colors.grey,
           ),
           
+          Obx(() => _buildDockButton(
+            onTap: controller.toggleHint,
+            icon: controller.showHint.value ? Icons.lightbulb_rounded : Icons.lightbulb_outline_rounded,
+            color: controller.showHint.value ? Colors.amber : Colors.grey,
+            isPrimary: controller.showHint.value,
+          )),
+
           _buildMainMicButton(controller),
           
           _buildDockButton(
@@ -608,16 +627,70 @@ class InterviewView extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 60.w,
-        height: 60.w,
+        width: 54.w, // Slightly smaller to fit 4 buttons
+        height: 54.w,
         decoration: BoxDecoration(
           color: isPrimary ? color.withOpacity(0.1) : Colors.white.withOpacity(0.05),
-          borderRadius: BorderRadius.circular(20.r),
+          borderRadius: BorderRadius.circular(16.r),
           border: Border.all(color: color.withOpacity(0.2)),
         ),
-        child: Icon(icon, color: isPrimary ? color : Colors.grey, size: 24.sp),
+        child: Icon(icon, color: isPrimary ? color : Colors.grey, size: 22.sp),
       ),
     );
+  }
+
+  Widget _buildHintSection(InterviewController controller, dynamic question, bool isDark) {
+    return Obx(() {
+      if (!controller.showHint.value) return const SizedBox.shrink();
+
+      return AnimatedContainer(
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOutCubic,
+        margin: EdgeInsets.only(top: 16.h, left: 24.w, right: 24.w),
+        padding: EdgeInsets.all(16.w),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: isDark 
+              ? [Colors.amber.withOpacity(0.1), Colors.amber.withOpacity(0.05)]
+              : [Colors.amber.withOpacity(0.05), Colors.amber.withOpacity(0.02)],
+          ),
+          borderRadius: BorderRadius.circular(20.r),
+          border: Border.all(color: Colors.amber.withOpacity(0.3)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.lightbulb_rounded, color: Colors.amber, size: 24.sp),
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "QUICK HINT",
+                    style: TextStyle(
+                      fontSize: 10.sp,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.amber,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                  SizedBox(height: 4.h),
+                  Text(
+                    question.displayHint,
+                    style: TextStyle(
+                      fontSize: 13.sp,
+                      color: isDark ? Colors.white.withOpacity(0.8) : Colors.black.withOpacity(0.7),
+                      height: 1.4,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    });
   }
 }
 

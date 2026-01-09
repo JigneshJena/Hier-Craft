@@ -26,6 +26,9 @@ class InterviewController extends GetxController {
   final totalScore = RxDouble(0.0);
   final RxString selectedProvider = 'gemini'.obs; // Default to gemini
   final answerController = TextEditingController();
+  final RxBool showHint = false.obs;
+
+  void toggleHint() => showHint.toggle();
 
   final List<String> difficulties = ['Fresher', 'Intermediate', 'Experienced'];
 
@@ -51,6 +54,7 @@ class InterviewController extends GetxController {
   }
 
   Future<void> _loadQuestions() async {
+    showHint.value = false;
     isLoading.value = true;
     List<Question>? fetchedQuestions;
     try {
@@ -142,11 +146,14 @@ class InterviewController extends GetxController {
     avatarState.value = AvatarState.thinking;
     final question = questions[currentQuestionIndex.value];
     
+    // Hide hint when submitting
+    showHint.value = false;
+    
     // Get engine based on current connectivity for evaluation
     final engine = _getEngine();
     
     final evaluation = await engine.evaluateAnswer(
-      question.id, 
+      question.text, // Pass text instead of ID
       answerText, 
       question.keywords
     );
@@ -180,6 +187,9 @@ class InterviewController extends GetxController {
   }
 
   void skipQuestion() {
+    // Hide hint
+    showHint.value = false;
+
     results.add({
       'question': questions[currentQuestionIndex.value].text,
       'answer': 'Skipped',

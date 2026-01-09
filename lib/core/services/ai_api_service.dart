@@ -186,6 +186,7 @@ Each object must have:
 - text: specific question
 - explanation: detailed answer
 - keywords: [{word: "...", points: 5}, ...]
+- hint: short hint containing key concepts
 - maxPoints: 10
 
 CRITICAL: Return ONLY JSON. No markdown, no "Here is the JSON", no "```json". Pure raw JSON array. If you MUST use markdown, ensure it is perfectly valid. Do not truncate strings.
@@ -277,6 +278,7 @@ ${excludedQuestions != null && excludedQuestions.isNotEmpty ? "IMPORTANT: DO NOT
 
 Question: $question
 Answer: $answer
+${keywords != null && keywords.isNotEmpty ? "Target Keywords: ${keywords.map((k) => k.word).join(', ')}" : ""}
 
 Provide evaluation in JSON format:
 {
@@ -311,11 +313,12 @@ Return ONLY the JSON object.''';
         final data = jsonDecode(response.body);
         final text = data['candidates'][0]['content']['parts'][0]['text'];
         
-        String jsonText = text;
-        if (jsonText.contains('```json')) {
-          jsonText = jsonText.split('```json')[1].split('```')[0].trim();
-        } else if (jsonText.contains('```')) {
-          jsonText = jsonText.split('```')[1].split('```')[0].trim();
+        String jsonText = text.trim();
+        // Robust extraction: find first '{' and last '}'
+        int startIndex = jsonText.indexOf('{');
+        int endIndex = jsonText.lastIndexOf('}');
+        if (startIndex != -1 && endIndex != -1 && endIndex > startIndex) {
+          jsonText = jsonText.substring(startIndex, endIndex + 1);
         }
 
         return jsonDecode(jsonText);
@@ -462,6 +465,7 @@ Return in JSON format as an array of EXACTLY $count questions with:
 - text: the technical question
 - explanation: a detailed correct answer or logical reasoning
 - keywords: array of {word, points} for evaluation
+- hint: a short helpful hint using the keywords
 - maxPoints: 10
 
 Example format:
@@ -525,6 +529,7 @@ ${excludedQuestions != null && excludedQuestions.isNotEmpty ? "IMPORTANT: DO NOT
 
 Question: $question
 Answer: $answer
+${keywords != null && keywords.isNotEmpty ? "Target Keywords: ${keywords.map((k) => k.word).join(', ')}" : ""}
 
 Provide evaluation in JSON format:
 {

@@ -114,7 +114,7 @@ Question $_questionCount: [Your next question]''';
 
   Future<String> _callGeminiAPI(String prompt, String apiKey) async {
     final url = Uri.parse(
-      'https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent',
+      'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent',
     );
     
     final cleanKey = apiKey.trim();
