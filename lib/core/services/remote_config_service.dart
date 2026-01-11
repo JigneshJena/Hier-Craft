@@ -86,32 +86,57 @@ class RemoteConfigService extends GetxService {
     return getProviders().where((p) => p.isActive).toList();
   }
 
+  String? _overrideId;
+
+  /// Set a local override for the AI provider by ID (takes precedence)
+  void setOverrideProvider(String? id) {
+    _overrideId = id;
+    _logger.i('🔄 AI Provider override set to ID: $_overrideId');
+  }
+
+  /// Get the configured AI provider type (preferred from config or override)
+  String getApiProvider() {
+    if (_overrideId != null) {
+      final match = getActiveProviders().firstWhereOrNull((p) => p.id == _overrideId);
+      if (match != null) return match.provider.toLowerCase();
+    }
+    return _remoteConfig.getString('api_provider').toLowerCase();
+  }
+
   /// Get a specific provider by ID or the first active one of a specific type
   AIProviderConfig? getProvider({String? id, String? type}) {
     final providers = getActiveProviders();
-    if (id != null) {
-      return providers.firstWhereOrNull((p) => p.id == id);
+    if (providers.isEmpty) return null;
+
+    // 1. Explicit ID requested
+    final targetId = id ?? _overrideId;
+    if (targetId != null) {
+      final match = providers.firstWhereOrNull((p) => p.id == targetId);
+      if (match != null) return match;
     }
+    
+    // 2. Explicit type requested (e.g., 'groq')
     if (type != null) {
       return providers.firstWhereOrNull((p) => p.provider.toLowerCase() == type.toLowerCase());
     }
-    return providers.isNotEmpty ? providers.first : null;
+    
+    // 3. Fallback to preferred 'api_provider' type from Remote Config
+    final preferredType = _remoteConfig.getString('api_provider').toLowerCase();
+    final preferred = providers.firstWhereOrNull((p) => p.provider.toLowerCase() == preferredType.toLowerCase());
+    
+    // 4. Ultimate fallback to the first active provider
+    return preferred ?? providers.first;
   }
 
-  /// Legacy compatibility: Get API key (not recommended, use getProvider instead)
+  /// Legacy compatibility: Get API key
   String getApiKey(String difficulty, {String? provider}) {
     final config = getProvider(type: provider);
     if (config != null) {
-      _logger.d('SUCCESS: Using ${config.id} from dynamic config (Ends with: ...${config.apiKey.substring(config.apiKey.length - 4)})');
+      _logger.d('SUCCESS: Using ${config.id} (${config.provider}) from dynamic config (Ends with: ...${config.apiKey.length > 4 ? config.apiKey.substring(config.apiKey.length - 4) : ""})');
       return config.apiKey;
     }
-    _logger.w('WARNING: No active provider found for $provider');
+    _logger.w('WARNING: No active provider found for ${provider ?? getApiProvider()}');
     return '';
-  }
-
-  /// Get the configured AI provider (gemini, openai, deepseek)
-  String getApiProvider() {
-    return _remoteConfig.getString('api_provider');
   }
 
   /// Force refresh remote config (useful for testing)

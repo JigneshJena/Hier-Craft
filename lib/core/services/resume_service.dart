@@ -6,14 +6,13 @@ import 'package:get/get.dart';
 import 'package:logger/logger.dart';
 import '../../data/models/resume_model.dart';
 import 'ai_api_service.dart';
-import 'remote_config_service.dart';
+import 'ai_config_service.dart';
 
 /// Service for handling resume uploads and analysis
 class ResumeService extends GetxService {
   final Logger _logger = Logger();
   final ImagePicker _imagePicker = ImagePicker();
   final AiApiService _aiService = Get.find<AiApiService>();
-  final RemoteConfigService _configService = Get.find<RemoteConfigService>();
 
   /// Pick a PDF file from device storage
   Future<File?> pickPdfFile() async {
@@ -131,24 +130,15 @@ class ResumeService extends GetxService {
   /// Analyze resume using AI
   Future<ResumeAnalysis> analyzeResume(String resumeText, {String? base64Data, String? mimeType}) async {
     try {
-      _logger.i('Analyzing resume with AI (Multimodal: ${base64Data != null})');
+      final aiConfig = Get.find<AiConfigService>();
+      _logger.i('Analyzing resume with AI (Global Config: ${aiConfig.provider.value})');
       
-      // Get active providers
-      final providers = _configService.getActiveProviders();
-      if (providers.isEmpty) throw Exception('No AI providers configured');
-
-      // Use the first active provider (usually Gemini for multimodal)
-      final providerConfig = providers.firstWhere(
-        (p) => p.provider == 'gemini', 
-        orElse: () => providers.first
-      );
-
       // Call AI service for analysis
       final result = await _aiService.analyzeResume(
         resumeText: resumeText,
-        apiKey: providerConfig.apiKey,
-        provider: providerConfig.provider,
-        model: providerConfig.model,
+        apiKey: aiConfig.apiKey.value,
+        provider: aiConfig.provider.value,
+        model: aiConfig.model.value,
         base64Data: base64Data,
         mimeType: mimeType,
       );

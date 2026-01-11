@@ -21,7 +21,8 @@ class AiApiService extends GetxService {
     List<String>? excludedQuestions,
   }) async {
     try {
-      _logger.i('Generating $count questions for $domain ($difficulty) using $provider');
+      final keyDisplay = apiKey.length > 8 ? "...${apiKey.substring(apiKey.length - 8)}" : "INVALID";
+      _logger.i('🚀 Generating $count questions using $provider (Key: $keyDisplay)');
 
       if (provider.toLowerCase() == 'gemini') {
         return await _generateQuestionsGemini(
@@ -32,18 +33,19 @@ class AiApiService extends GetxService {
           model: model,
           excludedQuestions: excludedQuestions,
         );
-      } else if (provider.toLowerCase() == 'openai' || provider.toLowerCase() == 'groq') {
-        return await _generateQuestionsGroq(
+      } else {
+        // Handle OpenAI-compatible providers (Groq, OpenAI, HuggingFace, etc.)
+        final config = Get.find<RemoteConfigService>().getProvider(id: provider);
+        return await _generateQuestionsGeneric(
           domain: domain,
           difficulty: difficulty,
           apiKey: apiKey,
           count: count,
           model: model,
+          baseUrl: config?.baseUrl,
           excludedQuestions: excludedQuestions,
+          provider: provider,
         );
-      } else {
-        _logger.w('Unsupported provider: $provider, falling back to empty list');
-        return [];
       }
     } catch (e) {
       _logger.e('Error generating questions: $e');
@@ -71,20 +73,18 @@ class AiApiService extends GetxService {
           keywords: keywords,
           model: model,
         );
-      } else if (provider.toLowerCase() == 'openai' || provider.toLowerCase() == 'groq') {
-        return await _evaluateAnswerGroq(
+      } else {
+        // Handle OpenAI-compatible providers
+        final config = Get.find<RemoteConfigService>().getProvider(id: provider);
+        return await _evaluateAnswerGeneric(
           question: question,
           answer: answer,
           apiKey: apiKey,
           keywords: keywords,
           model: model,
+          baseUrl: config?.baseUrl,
+          provider: provider,
         );
-      } else {
-        return {
-          'score': 0,
-          'matchedKeywords': [],
-          'feedback': 'Unsupported AI provider',
-        };
       }
     } catch (e) {
       _logger.e('Error evaluating answer: $e');
@@ -127,29 +127,60 @@ class AiApiService extends GetxService {
           mimeType: mimeType,
           model: model,
         );
-      } else if (activeProvider.toLowerCase() == 'openai' || activeProvider.toLowerCase() == 'groq') {
-        return await _analyzeResumeGroq(
+      } else {
+        // Handle OpenAI-compatible providers
+        final config = Get.find<RemoteConfigService>().getProvider(id: activeProvider);
+        return await _analyzeResumeGeneric(
           resumeText: resumeText,
           apiKey: activeApiKey,
           model: model,
+          baseUrl: config?.baseUrl,
+          provider: activeProvider,
         );
-      } else {
-        return {
-          'overall_score': 0,
-          'strengths': [],
-          'weaknesses': [],
-          'suggestions': [],
-          'error': 'Unsupported AI provider',
-        };
       }
     } catch (e) {
-      _logger.e('Error analyzing resume: $e');
       return {
         'overall_score': 0,
         'strengths': [],
         'weaknesses': [],
         'suggestions': [],
         'error': e.toString(),
+      };
+    }
+  }
+
+  /// Analyze personality based on interview transcript
+  Future<Map<String, dynamic>> analyzePersonality({
+    required List<Map<String, String>> transcript,
+    required String apiKey,
+    required String provider,
+    String? model,
+  }) async {
+    try {
+      if (provider.toLowerCase() == 'gemini') {
+        return await _analyzePersonalityGemini(
+          transcript: transcript,
+          apiKey: apiKey,
+          model: model,
+        );
+      } else {
+        // Simple fallback for other providers
+        return {
+          "traitName": "The Professional",
+          "description": "A focused candidate with balanced communication.",
+          "scores": {"analytical": 70, "creative": 60, "strategic": 65, "collaborative": 75, "detail": 80},
+          "strengths": ["Clear communication", "Technical focus", "Steady pace"],
+          "advice": "Keep refining your storytelling for behavioral questions."
+        };
+      }
+    } catch (e) {
+      _logger.e('Error in public analyzePersonality: $e');
+      return {
+        "traitName": "Analysis Interrupted",
+        "description": "The profile generation was interrupted by a technical error.",
+        "scores": {"analytical": 0, "creative": 0, "strategic": 0, "collaborative": 0, "detail": 0},
+        "strengths": [],
+        "advice": "Try completing another interview for a full profile."
       };
     }
   }
@@ -165,48 +196,46 @@ class AiApiService extends GetxService {
     List<String>? excludedQuestions,
   }) async {
     final modelName = model ?? 'gemini-1.5-flash';
+    final cleanKey = apiKey.trim();
     final url = Uri.parse(
-      'https://generativelanguage.googleapis.com/v1/models/$modelName:generateContent',
+      'https://generativelanguage.googleapis.com/v1/models/$modelName:generateContent?key=$cleanKey',
     );
 
     final timestamp = DateTime.now().millisecondsSinceEpoch;
 final prompt = '''Generate $count HIGHLY SPECIFIC and DIVERSE interview questions for the $domain domain at a $difficulty level. 
 Session ID: $timestamp
 
-Return correctly formatted JSON in an array of EXACTLY $count questions.
-The questions must follow a BEGINNER to ADVANCED progression:
-- First 2 questions: Fundamental concepts (Easy)
-- Next 2 questions: Implementation & Scenarios (Medium)
-- Final question: Optimization & Architecture (Advanced)
+Return correctly formatted JSON in an array of EXACTLY $count objects.
 
-Each object must have:
-- id: "q1", "q2", etc.
-- difficulty: "Easy", "Medium", or "Hard"
-- category: technical sub-topic
-- text: specific question
-- explanation: detailed answer
-- keywords: [{word: "...", points: 5}, ...]
-- hint: short hint containing key concepts
-- maxPoints: 10
+REQUIRED JSON FORMAT:
+[
+  {
+    "id": "q1",
+    "question_text": "the actual question here",
+    "ideal_answer": "a comprehensive correct answer for reference",
+    "keywords": [{"word": "key1", "points": 5}, {"word": "key2", "points": 5}],
+    "hints": ["progressive hint 1", "progressive hint 2"],
+    "explanation": "concise explanation of why this matters",
+    "estimated_time": 120,
+    "tags": ["topic1", "topic2"],
+    "difficulty": "Easy",
+    "category": "sub-domain"
+  }
+]
 
-CRITICAL: Return ONLY JSON. No markdown, no "Here is the JSON", no "```json". Pure raw JSON array. If you MUST use markdown, ensure it is perfectly valid. Do not truncate strings.
-
-${excludedQuestions != null && excludedQuestions.isNotEmpty ? "IMPORTANT: DO NOT ask the following questions as they have already been mastered or asked: \n- ${excludedQuestions.join('\n- ')}" : ""}
-''';
+Requirements:
+1. First 2 questions: Fundamental concepts (Easy)
+2. Next 2 questions: Implementation & Scenarios (Medium)
+3. Final question: Optimization & Architecture (Advanced)
+4. Keywords should be essential technical terms.
+5. Hints should be progressive (start vague, end specific).
+6. Return ONLY pure raw JSON.
+7. ${excludedQuestions != null && excludedQuestions.isNotEmpty ? "DO NOT ask: ${excludedQuestions.join(', ')}" : ""}''';
 
     try {
-      final cleanKey = apiKey.trim();
       
-      // Diagnostic: List available models
-      _logger.i('🔍 Diagnostic: Checking available models for this key...');
-      final modelsResponse = await http.get(
-        Uri.parse('https://generativelanguage.googleapis.com/v1/models?key=$cleanKey'),
-      );
-      _logger.i('Diag Response: ${modelsResponse.body}');
+      _logger.i('🤖 Calling Gemini API (Flash) with key suffix: ...${cleanKey.substring(cleanKey.length - 4)}');
 
-      _logger.i('🤖 Calling Gemini API (Flash) with key suffix: ...${cleanKey.substring(cleanKey.length - 4)} (Total Length: ${cleanKey.length})');
-      _logger.i('🤖 Key Hash: ${cleanKey.hashCode}');
-      
       final response = await http.post(
         url,
         headers: {
@@ -223,13 +252,25 @@ ${excludedQuestions != null && excludedQuestions.isNotEmpty ? "IMPORTANT: DO NOT
           ],
           'generationConfig': {
             'temperature': 0.9,
-          }
+          },
+          'safetySettings': [
+            {'category': 'HARM_CATEGORY_HARASSMENT', 'threshold': 'BLOCK_NONE'},
+            {'category': 'HARM_CATEGORY_HATE_SPEECH', 'threshold': 'BLOCK_NONE'},
+            {'category': 'HARM_CATEGORY_SEXUALLY_EXPLICIT', 'threshold': 'BLOCK_NONE'},
+            {'category': 'HARM_CATEGORY_DANGEROUS_CONTENT', 'threshold': 'BLOCK_NONE'}
+          ]
         }),
       );
 
       if (response.statusCode == 200) {
         _logger.i('✅ Gemini response received successfully');
         final data = jsonDecode(response.body);
+        
+        if (data['candidates'] == null || data['candidates'].isEmpty) {
+          _logger.w('⚠️ Gemini returned no candidates. Possibly safety blocked.');
+          return [];
+        }
+        
         final text = data['candidates'][0]['content']['parts'][0]['text'];
         
         // Robust JSON extraction
@@ -270,8 +311,9 @@ ${excludedQuestions != null && excludedQuestions.isNotEmpty ? "IMPORTANT: DO NOT
     String? model,
   }) async {
     final modelName = model ?? 'gemini-1.5-flash';
+    final cleanKey = apiKey.trim();
     final url = Uri.parse(
-      'https://generativelanguage.googleapis.com/v1/models/$modelName:generateContent',
+      'https://generativelanguage.googleapis.com/v1/models/$modelName:generateContent?key=$cleanKey',
     );
 
     final prompt = '''Evaluate this interview answer:
@@ -291,7 +333,6 @@ Provide evaluation in JSON format:
 Return ONLY the JSON object.''';
 
     try {
-      final cleanKey = apiKey.trim();
       final response = await http.post(
         url,
         headers: {
@@ -305,12 +346,24 @@ Return ONLY the JSON object.''';
                 {'text': prompt}
               ]
             }
+          ],
+          'safetySettings': [
+            {'category': 'HARM_CATEGORY_HARASSMENT', 'threshold': 'BLOCK_NONE'},
+            {'category': 'HARM_CATEGORY_HATE_SPEECH', 'threshold': 'BLOCK_NONE'},
+            {'category': 'HARM_CATEGORY_SEXUALLY_EXPLICIT', 'threshold': 'BLOCK_NONE'},
+            {'category': 'HARM_CATEGORY_DANGEROUS_CONTENT', 'threshold': 'BLOCK_NONE'}
           ]
         }),
       );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        
+        if (data['candidates'] == null || data['candidates'].isEmpty) {
+          _logger.w('⚠️ Gemini Evaluation returned no candidates.');
+          return {'score': 0, 'matchedKeywords': [], 'feedback': 'Gemini blocked or returned no result.'};
+        }
+        
         final text = data['candidates'][0]['content']['parts'][0]['text'];
         
         String jsonText = text.trim();
@@ -340,8 +393,9 @@ Return ONLY the JSON object.''';
     String? model,
   }) async {
     final modelName = model ?? 'gemini-1.5-flash';
+    final cleanKey = apiKey.trim();
     final url = Uri.parse(
-      'https://generativelanguage.googleapis.com/v1/models/$modelName:generateContent',
+      'https://generativelanguage.googleapis.com/v1/models/$modelName:generateContent?key=$cleanKey',
     );
 
     final prompt = resumeText.isNotEmpty && base64Data == null
@@ -375,7 +429,6 @@ Return ONLY the JSON object.''';
     }
 
     try {
-      final cleanKey = apiKey.trim();
       final response = await http.post(
         url,
         headers: {
@@ -434,47 +487,130 @@ Return ONLY the JSON object.''';
     }
   }
 
+  Future<Map<String, dynamic>> _analyzePersonalityGemini({
+    required List<Map<String, String>> transcript,
+    required String apiKey,
+    String? model,
+  }) async {
+    final modelName = model ?? 'gemini-1.5-flash';
+    final url = Uri.parse(
+      'https://generativelanguage.googleapis.com/v1/models/$modelName:generateContent',
+    );
+
+    final transcriptText = transcript.map((m) => "${m['role']}: ${m['content']}").join("\n");
+
+    final prompt = '''Analyze this interview transcript and create a professional personality profile.
+    
+    Transcript:
+    $transcriptText
+    
+    Instructions:
+    1. Determine a unique "traitName" (e.g., "The Strategic Architect", "The Creative Problem Solver").
+    2. Provide a 2-sentence "description" of their behavioral style.
+    3. Score these dimensions (1-100): analytical, creative, strategic, collaborative, detail.
+    4. List 3 key "strengths".
+    5. Provide actionable "advice" for improvement.
+    
+    Return ONLY JSON:
+    {
+      "traitName": "string",
+      "description": "string",
+      "scores": {
+        "analytical": number,
+        "creative": number,
+        "strategic": number,
+        "collaborative": number,
+        "detail": number
+      },
+      "strengths": ["string", "string", "string"],
+      "advice": "string"
+    }''';
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey.trim(),
+        },
+        body: jsonEncode({
+          'contents': [
+            {
+              'parts': [
+                {'text': prompt}
+              ]
+            }
+          ]
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final text = data['candidates'][0]['content']['parts'][0]['text'];
+        
+        String jsonText = text.trim();
+        int startIndex = jsonText.indexOf('{');
+        int endIndex = jsonText.lastIndexOf('}');
+        if (startIndex != -1 && endIndex != -1 && endIndex > startIndex) {
+          jsonText = jsonText.substring(startIndex, endIndex + 1);
+        }
+
+        return jsonDecode(jsonText);
+      } else {
+        throw Exception('Gemini API Error: ${response.statusCode}');
+      }
+    } catch (e) {
+      _logger.e('Error in personality analysis: $e');
+      return {
+        "traitName": "The Resilient Candidate",
+        "description": "Displays persistence despite technical challenges.",
+        "scores": {"analytical": 50, "creative": 50, "strategic": 50, "collaborative": 50, "detail": 50},
+        "strengths": ["Persistence"],
+        "advice": "Try again to get a deeper AI analysis."
+      };
+    }
+  }
+
   // ==================== GROQ (OpenAI Compatible) API METHODS ====================
 
-  Future<List<Question>> _generateQuestionsGroq({
+  Future<List<Question>> _generateQuestionsGeneric({
     required String domain,
     required String difficulty,
     required String apiKey,
     required int count,
+    required String provider,
+    String? baseUrl,
     String? model,
     List<String>? excludedQuestions,
   }) async {
-    final modelName = model ?? 'llama-3.3-70b-versatile';
-    const String apiUrl = 'https://api.groq.com/openai/v1/chat/completions';
+    final modelName = model ?? (provider.toLowerCase() == 'groq' ? 'llama-3.3-70b-versatile' : 'gpt-3.5-turbo');
+    final String apiUrl = baseUrl != null ? "$baseUrl/chat/completions" : 'https://api.groq.com/openai/v1/chat/completions';
 
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final prompt = '''Generate $count HIGHLY SPECIFIC and DIVERSE interview questions for the $domain domain at a $difficulty level.
 Session ID: $timestamp
 
-Strict Guidelines:
-1. PROGRESSION: Ensure questions go from Beginner to Advanced (Easy -> Medium -> Hard).
-2. AVOID basic definitions for the advanced questions.
-3. COVER different modules: networking, data structures, concurrency, and design patterns.
-3. ASK about specific scenarios (e.g., "What happens if Y occurs?").
-4. Provide technical, non-repetitive content.
+REQUIRED JSON FORMAT:
+[
+  {
+    "id": "unique_id",
+    "question_text": "the actual question here",
+    "ideal_answer": "a comprehensive correct answer for reference",
+    "keywords": [{"word": "key1", "points": 5}, {"word": "key2", "points": 5}],
+    "hints": ["progressive hint 1", "progressive hint 2"],
+    "explanation": "concise explanation of why this matters",
+    "estimated_time": 120,
+    "tags": ["topic1", "topic2"],
+    "difficulty": "Easy",
+    "category": "technical"
+  }
+]
 
-Return in JSON format as an array of EXACTLY $count questions with:
-- id: unique identifier
-- difficulty: "Easy", "Medium", or "Hard"
-- category: relevant technical category
-- text: the technical question
-- explanation: a detailed correct answer or logical reasoning
-- keywords: array of {word, points} for evaluation
-- hint: a short helpful hint using the keywords
-- maxPoints: 10
-
-Example format:
-[{"id":"q1","difficulty":"$difficulty","category":"Concurrency","text":"Explain the race condition in...?","explanation":"It occurs when...","keywords":[{"word":"synchronization","points":5}],"maxPoints":10}]
-
-
-Return ONLY the JSON array, no other text.
-
-${excludedQuestions != null && excludedQuestions.isNotEmpty ? "IMPORTANT: DO NOT ask the following questions: \n- ${excludedQuestions.join('\n- ')}" : ""}''';
+Requirements:
+1. PROGRESSION: Beginner to Advanced (Easy -> Medium -> Hard).
+2. AVOID basic definitions for advanced questions.
+3. Return ONLY pure raw JSON.
+4. ${excludedQuestions != null && excludedQuestions.isNotEmpty ? "DO NOT ask: ${excludedQuestions.join(', ')}" : ""}''';
 
     try {
       final response = await http.post(
@@ -496,14 +632,26 @@ ${excludedQuestions != null && excludedQuestions.isNotEmpty ? "IMPORTANT: DO NOT
         final data = jsonDecode(response.body);
         String text = data['choices'][0]['message']['content'];
 
-        // Extract JSON from markdown code blocks if present
-        if (text.contains('```json')) {
-          text = text.split('```json')[1].split('```')[0].trim();
-        } else if (text.contains('```')) {
-          text = text.split('```')[1].split('```')[0].trim();
+        // Robust JSON extraction
+        String jsonText = text.trim();
+        
+        // Remove markdown code blocks if present
+        if (jsonText.contains('```json')) {
+          jsonText = jsonText.split('```json')[1].split('```')[0].trim();
+        } else if (jsonText.contains('```')) {
+          jsonText = jsonText.split('```')[1].split('```')[0].trim();
+        }
+        
+        // Final fallback: find first '[' and last ']'
+        if (!jsonText.startsWith('[')) {
+          int startIndex = jsonText.indexOf('[');
+          int endIndex = jsonText.lastIndexOf(']');
+          if (startIndex != -1 && endIndex != -1 && endIndex > startIndex) {
+            jsonText = jsonText.substring(startIndex, endIndex + 1);
+          }
         }
 
-        final List<dynamic> questionsJson = jsonDecode(text);
+        final List<dynamic> questionsJson = jsonDecode(jsonText);
         return questionsJson.map((q) => Question.fromJson(q)).toList();
       } else {
         _logger.e('Groq API error: ${response.statusCode} - ${response.body}');
@@ -515,15 +663,17 @@ ${excludedQuestions != null && excludedQuestions.isNotEmpty ? "IMPORTANT: DO NOT
     }
   }
 
-  Future<Map<String, dynamic>> _evaluateAnswerGroq({
+  Future<Map<String, dynamic>> _evaluateAnswerGeneric({
     required String question,
     required String answer,
     required String apiKey,
+    required String provider,
+    String? baseUrl,
     List<Keyword>? keywords,
     String? model,
   }) async {
-    final modelName = model ?? 'llama-3.3-70b-versatile';
-    const String apiUrl = 'https://api.groq.com/openai/v1/chat/completions';
+    final modelName = model ?? (provider.toLowerCase() == 'groq' ? 'llama-3.3-70b-versatile' : 'gpt-3.5-turbo');
+    final String apiUrl = baseUrl != null ? "$baseUrl/chat/completions" : 'https://api.groq.com/openai/v1/chat/completions';
 
     final prompt = '''Evaluate this interview answer:
 
@@ -562,11 +712,21 @@ Return ONLY the JSON object.''';
         String text = data['choices'][0]['message']['content'];
 
         String jsonText = text.trim();
-        int startIndex = jsonText.indexOf('{');
-        int endIndex = jsonText.lastIndexOf('}');
         
-        if (startIndex != -1 && endIndex != -1 && endIndex > startIndex) {
-          jsonText = jsonText.substring(startIndex, endIndex + 1);
+        // Remove markdown code blocks if present
+        if (jsonText.contains('```json')) {
+          jsonText = jsonText.split('```json')[1].split('```')[0].trim();
+        } else if (jsonText.contains('```')) {
+          jsonText = jsonText.split('```')[1].split('```')[0].trim();
+        }
+
+        // Final fallback: find first '{' and last '}'
+        if (!jsonText.startsWith('{')) {
+          int startIndex = jsonText.indexOf('{');
+          int endIndex = jsonText.lastIndexOf('}');
+          if (startIndex != -1 && endIndex != -1 && endIndex > startIndex) {
+            jsonText = jsonText.substring(startIndex, endIndex + 1);
+          }
         }
 
         return jsonDecode(jsonText);
@@ -580,13 +740,15 @@ Return ONLY the JSON object.''';
     }
   }
 
-  Future<Map<String, dynamic>> _analyzeResumeGroq({
+  Future<Map<String, dynamic>> _analyzeResumeGeneric({
     required String resumeText,
     required String apiKey,
+    required String provider,
+    String? baseUrl,
     String? model,
   }) async {
-    final modelName = model ?? 'llama-3.3-70b-versatile';
-    const String apiUrl = 'https://api.groq.com/openai/v1/chat/completions';
+    final modelName = model ?? (provider.toLowerCase() == 'groq' ? 'llama-3.3-70b-versatile' : 'gpt-3.5-turbo');
+    final String apiUrl = baseUrl != null ? "$baseUrl/chat/completions" : 'https://api.groq.com/openai/v1/chat/completions';
 
     final prompt = '''Analyze this resume and provide feedback:
 

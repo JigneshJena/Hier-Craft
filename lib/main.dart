@@ -11,10 +11,14 @@ import 'core/services/scoring_service.dart';
 import 'core/services/remote_config_service.dart';
 import 'core/services/connectivity_service.dart';
 import 'core/services/ai_api_service.dart';
+import 'core/services/auth_service.dart';
+import 'core/services/presence_service.dart';
+import 'core/services/ai_config_service.dart';
 import 'core/services/resume_service.dart';
 import 'core/services/ai_interview_service.dart';
-import 'core/services/history_service.dart'; // Added
+import 'core/services/history_service.dart';
 import 'core/services/notification_service.dart';
+import 'data/services/user_service.dart';
 import 'app/constants/app_constants.dart';
 import 'app/routes/app_routes.dart';
 
@@ -33,10 +37,13 @@ void main() async {
   
   // Initialize Services
   Get.put(ThemeController());
+  final authService = Get.put(AuthService());
+  Get.put(PresenceService()).initPresence();
+  Get.put(AiConfigService());
   Get.put(ScoringService());
   Get.put(AiApiService());
   Get.put(HistoryService());
-  
+  await Get.putAsync(() => UserService().init());
   // Initialize Notification Service
   await Get.putAsync(() => NotificationService().init());
   

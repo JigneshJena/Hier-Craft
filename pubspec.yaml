@@ -55,9 +55,12 @@ dependencies:
   
   # Utilities
   logger: ^2.4.0
+  intl: ^0.19.0
+
 
   # Firebase
   firebase_core: ^3.15.2
+  cloud_firestore: ^5.6.3
   firebase_remote_config: ^5.1.4
   
   # Connectivity & Network
@@ -73,6 +76,9 @@ dependencies:
   flutter_local_notifications: ^19.5.0
   timezone: ^0.10.1
   flutter_timezone: ^5.0.1
+  firebase_auth: ^5.7.0
+  firebase_database: ^11.3.10
+  google_sign_in: ^6.2.1
 
 dev_dependencies:
   flutter_test:
@@ -97,8 +103,8 @@ flutter:
   uses-material-design: true
 
   # assets:
-  #   - assets/questions.json
-
+  #   - images/a_dot_burr.jpeg
+  #   - images/a_dot_ham.jpeg
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 

@@ -1,6 +1,7 @@
  import 'package:get/get.dart';
 import 'package:logger/logger.dart';
 import 'remote_config_service.dart';
+import 'ai_config_service.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
@@ -93,29 +94,31 @@ Question $_questionCount: [Your next question]''';
     }
   }
   
-  /// AI API call karo (Gemini or Groq)
+  /// AI API call karo (Global Config)
   Future<String> _callAIAPI(String prompt) async {
-    final provider = _configService.getApiProvider();
-    final apiKey = _configService.getApiKey('easy');
+    final aiConfig = Get.find<AiConfigService>();
+    final provider = aiConfig.provider.value;
+    final apiKey = aiConfig.apiKey.value;
     
-    if (apiKey.isEmpty || apiKey.startsWith('AIzaSyDefault')) {
-      _logger.w('⚠️ API key not found for $provider in Remote Config');
+    if (apiKey.isEmpty) {
+      _logger.w('⚠️ Global AI API key not found in Firestore');
       throw Exception('API key not configured');
     }
 
     if (provider == 'gemini') {
-      return await _callGeminiAPI(prompt, apiKey);
+      return await _callGeminiAPI(prompt, apiKey, aiConfig.model.value);
     } else if (provider == 'groq') {
-      return await _callGroqAPI(prompt, apiKey);
+      return await _callGroqAPI(prompt, apiKey, aiConfig.model.value);
     } else {
       throw Exception('Unsupported provider: $provider');
     }
   }
 
-  Future<String> _callGeminiAPI(String prompt, String apiKey) async {
+  Future<String> _callGeminiAPI(String prompt, String apiKey, String model) async {
     final url = Uri.parse(
-      'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent',
+      'https://generativelanguage.googleapis.com/v1/models/$model:generateContent',
     );
+    // ... rest follows
     
     final cleanKey = apiKey.trim();
     final requestBody = {
@@ -152,7 +155,7 @@ Question $_questionCount: [Your next question]''';
     }
   }
 
-  Future<String> _callGroqAPI(String prompt, String apiKey) async {
+  Future<String> _callGroqAPI(String prompt, String apiKey, String model) async {
     const String apiUrl = 'https://api.groq.com/openai/v1/chat/completions';
     
     final response = await http.post(
@@ -162,7 +165,7 @@ Question $_questionCount: [Your next question]''';
         'Authorization': 'Bearer ${apiKey.trim()}',
       },
       body: jsonEncode({
-        'model': 'llama-3.3-70b-versatile',
+        'model': model.isNotEmpty ? model : 'llama-3.3-70b-versatile',
         'messages': [
           {'role': 'user', 'content': (_conversationHistory ?? '') + '\n\n' + prompt}
         ],

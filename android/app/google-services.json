@@ -1,6 +1,7 @@
 {
   "project_info": {
     "project_number": "644887327998",
+    "firebase_url": "https://mockinterview-hirecraft-default-rtdb.asia-southeast1.firebasedatabase.app",
     "project_id": "mockinterview-hirecraft",
     "storage_bucket": "mockinterview-hirecraft.firebasestorage.app"
   },
@@ -12,7 +13,20 @@
           "package_name": "com.example.mockinterviewapp"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "644887327998-fb4ne1b3ibl17h0i6qg2i47rpa5g7m4f.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.mockinterviewapp",
+            "certificate_hash": "487e08dd15fd31f3579431a4a1f00596822fe00b"
+          }
+        },
+        {
+          "client_id": "644887327998-l1gerjs3g2uvcj0mabp8aqm6fapnmhoh.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAGgXKdgCo9WPtuH2_rmVBMTYq5pFQfV2Q"
@@ -20,7 +34,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "644887327998-8tm7suk3ar23idcs3c3s9vhdc4tm5c8b.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "644887327998-0q3ijlmcguacv0mhabt9ohs8s5i33nle.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.mockinterviewapp"
+              }
+            }
+          ]
         }
       }
     }

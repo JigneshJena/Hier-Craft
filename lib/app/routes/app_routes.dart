@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import '../../presentation/views/splash_view.dart';
+import '../../presentation/views/auth_view.dart';
 import '../../presentation/views/domain_view.dart';
 import '../../presentation/views/interview_view.dart';
 import '../../presentation/views/results_view.dart';
@@ -9,9 +10,15 @@ import '../../presentation/views/resume_analysis_view.dart';
 import '../../presentation/views/generated_resume_view.dart';
 import '../../presentation/views/home_view.dart';
 import '../../presentation/views/prep_hub_view.dart';
+import '../../presentation/views/practice_mode_selection_view.dart';
+import '../../presentation/views/ai_providers_admin_view.dart';
+import '../../presentation/views/admin_dashboard_view.dart';
+import '../../presentation/views/users_management_view.dart';
+
 
 class AppRoutes {
   static const String splash = '/';
+  static const String auth = '/auth';
   static const String domain = '/domain';
   static const String interview = '/interview';
   static const String results = '/results';
@@ -21,11 +28,19 @@ class AppRoutes {
   static const String generatedResume = '/generated-resume';
   static const String home = '/home';
   static const String prepHub = '/prep-hub';
+  static const String practiceMode = '/practice-mode';
+  static const String aiProvidersAdmin = '/ai-providers-admin';
+  static const String adminDashboard = '/admin-dashboard';
+  static const String userManagement = '/user-management';
 
   static final routes = [
     GetPage(
       name: splash,
       page: () => const SplashView(),
+    ),
+    GetPage(
+      name: auth,
+      page: () => const AuthView(),
     ),
     GetPage(
       name: domain,
@@ -62,6 +77,22 @@ class AppRoutes {
     GetPage(
       name: prepHub,
       page: () => const PrepHubView(),
+    ),
+    GetPage(
+      name: practiceMode,
+      page: () => const PracticeModeSelectionView(),
+    ),
+    GetPage(
+      name: aiProvidersAdmin,
+      page: () => const AiProvidersAdminView(),
+    ),
+    GetPage(
+      name: adminDashboard,
+      page: () => const AdminDashboardView(),
+    ),
+    GetPage(
+      name: userManagement,
+      page: () => const UsersManagementView(),
     ),
   ];
 }

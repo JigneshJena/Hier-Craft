@@ -2,40 +2,66 @@ class Question {
   final String id;
   final String category;
   final String text;
+  final String? idealAnswer;
   final List<Keyword> keywords;
-  final num maxPoints;
-  final String? hint;
+  final List<String> hints;
   final String? explanation;
   final String difficulty;
+  final int estimatedTime; // In seconds
+  final List<String> tags;
+  final num maxPoints;
 
   Question({
     required this.id,
     required this.category,
     required this.text,
+    this.idealAnswer,
     required this.keywords,
-    required this.maxPoints,
-    this.difficulty = 'Fresher',
+    this.hints = const [],
     this.explanation,
-    this.hint,
+    this.difficulty = 'Fresher',
+    this.estimatedTime = 120,
+    this.tags = const [],
+    this.maxPoints = 10.0,
   });
 
   factory Question.fromJson(Map<String, dynamic> json) {
     return Question(
-      id: json['id'],
+      id: json['id'] ?? '',
       category: json['category'] ?? 'general',
-      text: json['text'],
+      text: json['question_text'] ?? json['text'] ?? '',
+      idealAnswer: json['ideal_answer'],
       difficulty: json['difficulty'] ?? 'Fresher',
-      keywords: (json['keywords'] as List)
-          .map((k) => Keyword.fromJson(k))
-          .toList(),
-      maxPoints: json['maxPoints'] ?? 10.0,
+      keywords: (json['keywords'] as List?)
+              ?.map((k) => k is String ? Keyword(word: k, points: 2) : Keyword.fromJson(k))
+              .toList() ??
+          [],
+      hints: List<String>.from(json['hints'] ?? (json['hint'] != null ? [json['hint']] : [])),
       explanation: json['explanation'],
-      hint: json['hint'],
+      estimatedTime: json['estimated_time'] ?? 120,
+      tags: List<String>.from(json['tags'] ?? []),
+      maxPoints: (json['maxPoints'] ?? 10.0).toDouble(),
     );
   }
 
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'category': category,
+      'question_text': text,
+      'ideal_answer': idealAnswer,
+      'keywords': keywords.map((k) => k.toJson()).toList(),
+      'hints': hints,
+      'explanation': explanation,
+      'difficulty': difficulty,
+      'estimated_time': estimatedTime,
+      'tags': tags,
+      'maxPoints': maxPoints,
+    };
+  }
+
   String get displayHint {
-    if (hint != null && hint!.isNotEmpty) return hint!;
+    if (hints.isNotEmpty) return hints.first;
     if (keywords.isNotEmpty) {
       return "Try to use these keywords: ${keywords.map((k) => k.word).join(', ')}";
     }
@@ -57,10 +83,16 @@ class Keyword {
   factory Keyword.fromJson(Map<String, dynamic> json) {
     return Keyword(
       word: json['word'],
-      points: json['points'],
+      points: json['points'] ?? 1.0,
       synonyms: List<String>.from(json['synonyms'] ?? []),
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'word': word,
+        'points': points,
+        'synonyms': synonyms,
+      };
 }
 
 class InterviewDomain {

@@ -7,6 +7,7 @@ import '../controllers/interview_controller.dart';
 import '../../core/services/voice_service.dart';
 import '../../core/services/connectivity_service.dart';
 import '../../app/themes/app_colors.dart';
+import '../../core/services/remote_config_service.dart';
 
 class InterviewView extends StatelessWidget {
   const InterviewView({super.key});
@@ -143,11 +144,16 @@ class InterviewView extends StatelessWidget {
               color: isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurfaceVariant,
               borderRadius: BorderRadius.circular(16.r),
             ),
-            child: Row(
-              children: [
-                _buildModelToggle(controller, 'gemini', 'Gemini AI'),
-                _buildModelToggle(controller, 'groq', 'Groq Ultra'),
-              ],
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: Get.find<RemoteConfigService>().getActiveProviders().map((cfg) {
+                  return SizedBox(
+                    width: 120.w,
+                    child: _buildModelToggle(controller, cfg.id, cfg.id),
+                  );
+                }).toList(),
+              ),
             ),
           ),
           
@@ -175,7 +181,10 @@ class InterviewView extends StatelessWidget {
       child: Obx(() {
         final isSelected = controller.selectedProvider.value == provider;
         return GestureDetector(
-          onTap: () => controller.selectedProvider.value = provider,
+          onTap: () {
+            controller.selectedProvider.value = provider;
+            Get.find<RemoteConfigService>().setOverrideProvider(provider);
+          },
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 300),
             padding: EdgeInsets.symmetric(vertical: 12.h),

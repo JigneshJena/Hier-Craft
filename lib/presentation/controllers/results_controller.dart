@@ -5,6 +5,7 @@ class ResultsController extends GetxController {
   late int maxScore;
   late List<Map<String, dynamic>> results;
   late String domain;
+  Map<String, dynamic>? personality;
 
   @override
   void onInit() {
@@ -13,6 +14,7 @@ class ResultsController extends GetxController {
     maxScore = Get.arguments['maxScore'] ?? 100;
     results = Get.arguments['results'] ?? [];
     domain = Get.arguments['domain'] ?? 'Software';
+    personality = Get.arguments['personality'];
   }
 
   double get percentage => (totalScore / maxScore) * 100;

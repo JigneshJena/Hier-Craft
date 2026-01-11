@@ -287,7 +287,7 @@ class DomainView extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () => Get.toNamed(AppRoutes.interview, arguments: {'domain': domain.name}),
+          onTap: () => Get.toNamed(AppRoutes.practiceMode, arguments: {'domain': domain.name}),
           borderRadius: BorderRadius.circular(28.r),
           child: Container(
             decoration: BoxDecoration(

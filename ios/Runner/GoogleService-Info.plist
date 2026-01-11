@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CLIENT_ID</key>
+	<string>644887327998-0q3ijlmcguacv0mhabt9ohs8s5i33nle.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.644887327998-0q3ijlmcguacv0mhabt9ohs8s5i33nle</string>
+	<key>ANDROID_CLIENT_ID</key>
+	<string>644887327998-fb4ne1b3ibl17h0i6qg2i47rpa5g7m4f.apps.googleusercontent.com</string>
+	<key>API_KEY</key>
+	<string>AIzaSyCTqx_aEC9nxunEopJ8_VDqeaWexMgavDY</string>
+	<key>GCM_SENDER_ID</key>
+	<string>644887327998</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.example.mockinterviewapp</string>
+	<key>PROJECT_ID</key>
+	<string>mockinterview-hirecraft</string>
+	<key>STORAGE_BUCKET</key>
+	<string>mockinterview-hirecraft.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:644887327998:ios:6ea95abc85fa065b8d21af</string>
+</dict>
+</plist>
